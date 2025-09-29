@@ -1,0 +1,216 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Teen CRM - Merchant Management System</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        body { font-family: 'Inter', sans-serif; }
+        .hidden { display: none !important; }
+        .sidebar-item:hover { background-color: rgba(59, 130, 246, 0.1); }
+        .sidebar-item.active { background-color: rgba(59, 130, 246, 0.2); border-right: 3px solid #3b82f6; }
+        .merchant-card:hover { transform: translateY(-2px); transition: transform 0.2s ease; }
+        .stage-badge { 
+            padding: 0.25rem 0.75rem; 
+            border-radius: 9999px; 
+            font-size: 0.75rem; 
+            font-weight: 500; 
+        }
+        .stage-pending { background-color: #fef3c7; color: #92400e; }
+        .stage-followup { background-color: #fde68a; color: #d97706; }
+        .stage-contract { background-color: #dbeafe; color: #1d4ed8; }
+        .stage-won { background-color: #d1fae5; color: #065f46; }
+        .stage-rejected { background-color: #fee2e2; color: #dc2626; }
+        .stage-live { background-color: #d1fae5; color: #065f46; border: 2px solid #10b981; }
+        .notification { position: fixed; top: 20px; right: 20px; z-index: 1000; }
+        .fade-in { animation: fadeIn 0.3s ease-in; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(-10px); } to { opacity: 1; transform: translateY(0); } }
+        .modal-backdrop { background-color: rgba(0, 0, 0, 0.5); }
+        .modal-content { animation: modalSlideIn 0.3s ease-out; }
+        @keyframes modalSlideIn { from { transform: scale(0.95); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+        .payout-badge { background: linear-gradient(135deg, #10b981, #059669); color: white; }
+        .activity-timeline::before { content: ''; position: absolute; left: 1rem; top: 0; bottom: 0; width: 2px; background: #e5e7eb; }
+        .activity-item { position: relative; }
+        .activity-dot { position: absolute; left: 0.75rem; width: 0.5rem; height: 0.5rem; border-radius: 50%; background: #3b82f6; border: 2px solid white; box-shadow: 0 0 0 2px #e5e7eb; }
+    </style>
+</head>
+<body class="bg-gray-50 min-h-screen">
+    <!-- Login Screen -->
+    <div id="loginScreen" class="min-h-screen flex items-center justify-center">
+        <div class="max-w-md w-full space-y-8 p-8">
+            <div class="text-center">
+                <div class="mx-auto h-16 w-16 bg-blue-600 rounded-full flex items-center justify-center">
+                    <i class="fas fa-store text-white text-2xl"></i>
+                </div>
+                <h2 class="mt-6 text-3xl font-extrabold text-gray-900">Teen CRM</h2>
+                <p class="mt-2 text-sm text-gray-600">Merchant Management System</p>
+            </div>
+            <form id="loginForm" class="mt-8 space-y-6">
+                <div class="rounded-md shadow-sm space-y-4">
+                    <div>
+                        <label for="email" class="block text-sm font-medium text-gray-700">Email</label>
+                        <input id="email" name="email" type="email" required
+                               class="mt-1 appearance-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500 focus:z-10 sm:text-sm"
+                               placeholder="Enter your email" value="admin@teen-crm.com">
+                    </div>
+                    <div>
+                        <label for="password" class="block text-sm font-medium text-gray-700">Password</label>
+                        <input id="password" name="password" type="password" required
+                               class="mt-1 appearance-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500 focus:z-10 sm:text-sm"
+                               placeholder="Enter your password" value="admin123">
+                    </div>
+                </div>
+                <div>
+                    <button type="submit" class="group relative w-full flex justify-center py-2 px-4 border border-transparent text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
+                        <span class="absolute left-0 inset-y-0 flex items-center pl-3">
+                            <i class="fas fa-lock text-blue-500 group-hover:text-blue-400"></i>
+                        </span>
+                        Sign in
+                    </button>
+                </div>
+                <div class="text-center">
+                    <div class="mt-4 p-4 bg-blue-50 rounded-lg">
+                        <h3 class="text-sm font-medium text-blue-900 mb-2">Demo Credentials:</h3>
+                        <div class="text-xs text-blue-700 space-y-1">
+                            <div><strong>Manager:</strong> admin@teen-crm.com / admin123</div>
+                            <div><strong>Rep 1:</strong> sami@teen-crm.com / rep123</div>
+                            <div><strong>Rep 2:</strong> layla@teen-crm.com / rep123</div>
+                        </div>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Main Application -->
+    <div id="mainApp" class="hidden">
+        <!-- Top Navigation -->
+        <nav class="bg-white shadow-sm border-b">
+            <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+                <div class="flex justify-between h-16">
+                    <div class="flex items-center">
+                        <div class="flex-shrink-0 flex items-center">
+                            <div class="h-8 w-8 bg-blue-600 rounded-lg flex items-center justify-center">
+                                <i class="fas fa-store text-white text-sm"></i>
+                            </div>
+                            <span class="ml-2 text-xl font-bold text-gray-900">Teen CRM</span>
+                        </div>
+                    </div>
+                    <div class="flex items-center space-x-4">
+                        <div class="flex items-center space-x-2">
+                            <div class="h-8 w-8 bg-gray-300 rounded-full flex items-center justify-center">
+                                <i class="fas fa-user text-gray-600 text-sm"></i>
+                            </div>
+                            <span id="userInfo" class="text-sm font-medium text-gray-900"></span>
+                        </div>
+                        <button id="logoutBtn" class="text-gray-500 hover:text-gray-700">
+                            <i class="fas fa-sign-out-alt"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </nav>
+
+        <!-- Sidebar and Content -->
+        <div class="flex h-screen pt-16">
+            <!-- Sidebar -->
+            <div class="w-64 bg-white shadow-sm border-r">
+                <nav class="mt-5 px-2">
+                    <div class="space-y-1">
+                        <a href="#" id="dashboardTab" class="sidebar-item active group flex items-center px-2 py-2 text-sm font-medium rounded-md text-gray-900">
+                            <i class="fas fa-chart-line mr-3 text-gray-400 group-hover:text-blue-500"></i>
+                            Dashboard
+                        </a>
+                        <a href="#" id="merchantsTab" class="sidebar-item group flex items-center px-2 py-2 text-sm font-medium rounded-md text-gray-600 hover:text-gray-900">
+                            <i class="fas fa-store mr-3 text-gray-400 group-hover:text-blue-500"></i>
+                            Merchants
+                        </a>
+                        <a href="#" id="pipelineTab" class="sidebar-item group flex items-center px-2 py-2 text-sm font-medium rounded-md text-gray-600 hover:text-gray-900">
+                            <i class="fas fa-funnel-dollar mr-3 text-gray-400 group-hover:text-blue-500"></i>
+                            Pipeline
+                        </a>
+                        <a href="#" id="onboardingTab" class="sidebar-item group flex items-center px-2 py-2 text-sm font-medium rounded-md text-gray-600 hover:text-gray-900">
+                            <i class="fas fa-tasks mr-3 text-gray-400 group-hover:text-blue-500"></i>
+                            Onboarding
+                        </a>
+                        <a href="#" id="activitiesTab" class="sidebar-item group flex items-center px-2 py-2 text-sm font-medium rounded-md text-gray-600 hover:text-gray-900">
+                            <i class="fas fa-history mr-3 text-gray-400 group-hover:text-blue-500"></i>
+                            Activities
+                        </a>
+                        <a href="#" id="payoutsTab" class="sidebar-item group flex items-center px-2 py-2 text-sm font-medium rounded-md text-gray-600 hover:text-gray-900">
+                            <i class="fas fa-dollar-sign mr-3 text-gray-400 group-hover:text-blue-500"></i>
+                            Payouts
+                        </a>
+                    </div>
+                </nav>
+            </div>
+
+            <!-- Main Content -->
+            <div class="flex-1 overflow-hidden">
+                <main class="h-full overflow-y-auto">
+                    <div class="p-6">
+                        <!-- Dashboard Section -->
+                        <div id="dashboardSection" class="section">
+                            <!-- Dashboard content will be loaded here -->
+                        </div>
+
+                        <!-- Merchants Section -->
+                        <div id="merchantsSection" class="section hidden">
+                            <!-- Merchants content will be loaded here -->
+                        </div>
+
+                        <!-- Pipeline Section -->
+                        <div id="pipelineSection" class="section hidden">
+                            <!-- Pipeline content will be loaded here -->
+                        </div>
+
+                        <!-- Onboarding Section -->
+                        <div id="onboardingSection" class="section hidden">
+                            <!-- Onboarding content will be loaded here -->
+                        </div>
+
+                        <!-- Activities Section -->
+                        <div id="activitiesSection" class="section hidden">
+                            <!-- Activities content will be loaded here -->
+                        </div>
+
+                        <!-- Payouts Section -->
+                        <div id="payoutsSection" class="section hidden">
+                            <!-- Payouts content will be loaded here -->
+                        </div>
+                    </div>
+                </main>
+            </div>
+        </div>
+    </div>
+
+    <!-- Notification Container -->
+    <div id="notifications" class="notification"></div>
+
+    <!-- Loading Overlay -->
+    <div id="loadingOverlay" class="hidden fixed inset-0 bg-gray-600 bg-opacity-50 flex items-center justify-center z-50">
+        <div class="bg-white rounded-lg p-6">
+            <div class="flex items-center space-x-3">
+                <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+                <span class="text-gray-900 font-medium">Loading...</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- Scripts -->
+    <script src="js/auth.js"></script>
+    <script src="js/data.js"></script>
+    <script src="js/utils.js"></script>
+    <script src="js/dashboard.js"></script>
+    <script src="js/merchants.js"></script>
+    <script src="js/pipeline.js"></script>
+    <script src="js/onboarding.js"></script>
+    <script src="js/activities.js"></script>
+    <script src="js/payouts.js"></script>
+    <script src="js/app.js"></script>
+</body>
+</html>
