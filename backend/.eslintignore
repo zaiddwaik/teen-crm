@@ -1,0 +1,9 @@
+dist/
+node_modules/
+coverage/
+...
+.env*
+docker-compose*.yml
+Dockerfile*
+prisma/migrations/
+.nixpacks/
