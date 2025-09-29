@@ -6,9 +6,9 @@
   "scripts": {
     "dev": "nodemon --exec tsx src/server.ts",
     "dev:debug": "nodemon --inspect=0.0.0.0:9229 --exec tsx src/server.ts",
-    "build": "tsc && npm run generate",
+    "build": "tsc && npm run db:generate",
     "start": "node dist/server.js",
-    "postinstall": "npm run generate",
+    "postinstall": "npm run db:generate",
     "db:migrate": "prisma migrate deploy",
     "db:migrate:dev": "prisma migrate dev",
     "db:generate": "prisma generate",
