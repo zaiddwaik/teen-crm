@@ -1,9 +1,0 @@
-[build]
-builder = "NIXPACKS"
-
-...
-restartPolicyType = "ON_FAILURE"
-
-[[services]]
-name = "teen-crm-backend"
-source = "."
