@@ -1,0 +1,31 @@
+name: teen-crm-backend
+services:
+- name: api
+  source_dir: /
+  github:
+    repo: your-username/your-repo-name
+    branch: main
+  run_command: npm start
+  build_command: npm run build
+  environment_slug: node-js
+  instance_count: 1
+  instance_size_slug: basic-xxs
+  env:
+  - key: NODE_ENV
+    value: production
+  - key: JWT_SECRET
+    value: your-super-secret-jwt-key-change-this-in-production-min-32-chars
+  - key: JWT_REFRESH_SECRET
+    value: your-refresh-secret-key-change-this-in-production-min-32-chars
+  - key: BCRYPT_ROUNDS
+    value: "12"
+  - key: WON_PAYOUT_AMOUNT
+    value: "9"
+  - key: LIVE_PAYOUT_AMOUNT
+    value: "7"
+  - key: CORS_ORIGIN
+    value: https://your-subdomain.yourdomain.com
+databases:
+- name: teen-crm-db
+  engine: PG
+  version: "15"

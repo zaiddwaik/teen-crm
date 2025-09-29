@@ -1,0 +1,90 @@
+version: '3.8'
+
+services:
+  # PostgreSQL Database for Development
+  postgres:
+    image: postgres:15-alpine
+    container_name: teen_crm_postgres_dev
+    environment:
+      POSTGRES_DB: teen_crm_dev
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_dev_data:/var/lib/postgresql/data
+      - ./init.sql:/docker-entrypoint-initdb.d/init.sql:ro
+    networks:
+      - teen_crm_dev_network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d teen_crm_dev"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+
+  # Redis Cache for Development
+  redis:
+    image: redis:7-alpine
+    container_name: teen_crm_redis_dev
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_dev_data:/data
+    networks:
+      - teen_crm_dev_network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+
+  # Development backend (with hot reload)
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile.dev
+    container_name: teen_crm_backend_dev
+    environment:
+      DATABASE_URL: "postgresql://postgres:postgres@postgres:5432/teen_crm_dev?schema=public"
+      NODE_ENV: development
+      PORT: 3001
+      JWT_SECRET: dev_jwt_secret_change_in_production
+      JWT_REFRESH_SECRET: dev_jwt_refresh_secret_change_in_production
+      JWT_EXPIRES_IN: 15m
+      JWT_REFRESH_EXPIRES_IN: 7d
+      BCRYPT_ROUNDS: 10
+      CORS_ORIGIN: http://localhost:3000,http://localhost:8080
+      WON_PAYOUT_AMOUNT: 9
+      LIVE_PAYOUT_AMOUNT: 7
+      LOG_LEVEL: debug
+    ports:
+      - "3001:3001"
+      - "9229:9229" # Debug port
+    volumes:
+      - .:/app
+      - /app/node_modules
+      - dev_uploads:/app/uploads
+    networks:
+      - teen_crm_dev_network
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    restart: unless-stopped
+    command: npm run dev
+
+networks:
+  teen_crm_dev_network:
+    driver: bridge
+    name: teen_crm_dev_network
+
+volumes:
+  postgres_dev_data:
+    name: teen_crm_postgres_dev_data
+  redis_dev_data:
+    name: teen_crm_redis_dev_data
+  dev_uploads:
+    name: teen_crm_dev_uploads

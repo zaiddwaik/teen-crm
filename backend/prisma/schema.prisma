@@ -1,0 +1,440 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// User management
+model User {
+  id          String   @id @default(uuid())
+  email       String   @unique
+  name        String
+  phone       String?
+  role        Role     @default(REP)
+  status      UserStatus @default(ACTIVE)
+  passwordHash String   @map("password_hash")
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+  lastLoginAt DateTime? @map("last_login_at")
+
+  // Relations
+  createdMerchants Merchant[] @relation("CreatedBy")
+  assignedPipelines Pipeline[] @relation("ResponsibleRep")
+  assignedOnboarding Onboarding[] @relation("AssignedRep")
+  activities Activity[]
+  payouts PayoutLedger[]
+  auditLogs AuditLog[]
+
+  @@map("users")
+}
+
+// Merchant management
+model Merchant {
+  id              String  @id @default(uuid())
+  merchantName    String  @map("merchant_name")
+  legalName       String? @map("legal_name")
+  brandAliases    String[] @map("brand_aliases")
+  category        MerchantCategory
+  genre           String?
+  pricingTier     PricingTier @default(MID) @map("pricing_tier")
+  studentFit      StudentFit @default(MEDIUM) @map("student_fit")
+  
+  // Location
+  city            String
+  neighborhood    String?
+  exactAddress    String? @map("exact_address")
+  googleMapsLink  String? @map("google_maps_link")
+  lat             Float?
+  lng             Float?
+  numBranches     Int     @default(1) @map("num_branches")
+  
+  // Services
+  deliveryAvailable Boolean @default(false) @map("delivery_available")
+  dineIn          Boolean @default(false) @map("dine_in")
+  takeAway        Boolean @default(false) @map("take_away")
+  
+  // Business Hours
+  openingHours    String? @map("opening_hours")
+  busyHours       String? @map("busy_hours")
+  
+  // Partnership
+  ownerPartner    String? @map("owner_partner")
+  
+  // Digital Presence
+  website         String?
+  instagram       String?
+  tiktok          String?
+  
+  // Contact Info
+  phoneMain       String? @map("phone_main")
+  whatsappBusiness String? @map("whatsapp_business")
+  emailMain       String? @map("email_main")
+  
+  // Legal & Compliance
+  registerNumber  String? @map("register_number")
+  taxNumber       String? @map("tax_number")
+  kycStatus       KycStatus @default(NOT_NEEDED) @map("kyc_status")
+  riskLevel       RiskLevel @default(LOW) @map("risk_level")
+  
+  // Contract Management
+  contractRequired Boolean @default(false) @map("contract_required")
+  contractVersion String? @map("contract_version")
+  contractStatus  ContractStatus @default(NOT_SENT) @map("contract_status")
+  contractSentAt  DateTime? @map("contract_sent_at")
+  contractSignedAt DateTime? @map("contract_signed_at")
+  
+  // Metadata
+  createdAt       DateTime @default(now()) @map("created_at")
+  updatedAt       DateTime @updatedAt @map("updated_at")
+  createdById     String   @map("created_by_id")
+  
+  // Derived fields
+  isLive          Boolean  @default(false) @map("is_live")
+
+  // Relations
+  createdBy       User       @relation("CreatedBy", fields: [createdById], references: [id])
+  pipeline        Pipeline?
+  onboarding      Onboarding?
+  activities      Activity[]
+  contacts        Contact[]
+  assets          Asset?
+  offers          Offer[]
+  payouts         PayoutLedger[]
+  auditLogs       AuditLog[]
+
+  @@map("merchants")
+}
+
+// Pipeline management
+model Pipeline {
+  id               String      @id @default(uuid())
+  merchantId       String      @unique @map("merchant_id")
+  stage            PipelineStage
+  stageSetAt       DateTime    @default(now()) @map("stage_set_at")
+  responsibleRepId String?     @map("responsible_rep_id")
+  nextAction       String?     @map("next_action")
+  nextActionDue    DateTime?   @map("next_action_due")
+  lostReason       String?     @map("lost_reason")
+  isCurrent        Boolean     @default(true) @map("is_current")
+  createdAt        DateTime    @default(now()) @map("created_at")
+  updatedAt        DateTime    @updatedAt @map("updated_at")
+
+  // Relations
+  merchant         Merchant    @relation(fields: [merchantId], references: [id], onDelete: Cascade)
+  responsibleRep   User?       @relation("ResponsibleRep", fields: [responsibleRepId], references: [id])
+
+  @@map("pipeline")
+}
+
+// Onboarding management
+model Onboarding {
+  id               String    @id @default(uuid())
+  merchantId       String    @unique @map("merchant_id")
+  assignedRepId    String?   @map("assigned_rep_id")
+  
+  // Contact Info
+  contactName      String?   @map("contact_name")
+  contactNumber    String?   @map("contact_number")
+  locationLabel    String?   @map("location_label")
+  
+  // Checklist Items
+  surveyFilled     Boolean   @default(false) @map("survey_filled")
+  teenStaffInstalled Boolean @default(false) @map("teen_staff_installed")
+  credentialsSent  Boolean   @default(false) @map("credentials_sent")
+  trainingDone     Boolean   @default(false) @map("training_done")
+  offersAdded      Boolean   @default(false) @map("offers_added")
+  offersCount      Int       @default(0) @map("offers_count")
+  branchesCovered  Boolean   @default(false) @map("branches_covered")
+  assetsComplete   Boolean   @default(false) @map("assets_complete")
+  readyForQa       Boolean   @default(false) @map("ready_for_qa")
+  
+  // Live Status
+  live             Boolean   @default(false)
+  liveDate         DateTime? @map("live_date")
+  qaNotes          String?   @map("qa_notes")
+  
+  createdAt        DateTime  @default(now()) @map("created_at")
+  updatedAt        DateTime  @updatedAt @map("updated_at")
+
+  // Relations
+  merchant         Merchant  @relation(fields: [merchantId], references: [id], onDelete: Cascade)
+  assignedRep      User?     @relation("AssignedRep", fields: [assignedRepId], references: [id])
+
+  @@map("onboarding")
+}
+
+// Activity tracking
+model Activity {
+  id           String       @id @default(uuid())
+  merchantId   String       @map("merchant_id")
+  repId        String       @map("rep_id")
+  type         ActivityType
+  summary      String
+  occurredAt   DateTime     @map("occurred_at")
+  attachmentUrl String?     @map("attachment_url")
+  createdAt    DateTime     @default(now()) @map("created_at")
+  updatedAt    DateTime     @updatedAt @map("updated_at")
+
+  // Relations
+  merchant     Merchant     @relation(fields: [merchantId], references: [id], onDelete: Cascade)
+  rep          User         @relation(fields: [repId], references: [id])
+
+  @@index([merchantId])
+  @@index([repId])
+  @@index([occurredAt])
+  @@map("activities")
+}
+
+// Contact management
+model Contact {
+  id               String       @id @default(uuid())
+  merchantId       String       @map("merchant_id")
+  name             String
+  role             ContactRole  @default(OWNER)
+  phone            String?
+  whatsapp         String?
+  email            String?
+  preferredChannel ContactChannel @default(WHATSAPP) @map("preferred_channel")
+  notes            String?
+  createdAt        DateTime     @default(now()) @map("created_at")
+  updatedAt        DateTime     @updatedAt @map("updated_at")
+
+  // Relations
+  merchant         Merchant     @relation(fields: [merchantId], references: [id], onDelete: Cascade)
+
+  @@index([merchantId])
+  @@map("contacts")
+}
+
+// Asset management
+model Asset {
+  id            String   @id @default(uuid())
+  merchantId    String   @unique @map("merchant_id")
+  logoUrl       String?  @map("logo_url")
+  bannerUrl     String?  @map("banner_url")
+  descriptionText String? @map("description_text")
+  appCategoryTags String[] @map("app_category_tags")
+  mapAddress    String?  @map("map_address")
+  mapLink       String?  @map("map_link")
+  createdAt     DateTime @default(now()) @map("created_at")
+  updatedAt     DateTime @updatedAt @map("updated_at")
+
+  // Relations
+  merchant      Merchant @relation(fields: [merchantId], references: [id], onDelete: Cascade)
+
+  @@map("assets")
+}
+
+// Offer management
+model Offer {
+  id         String      @id @default(uuid())
+  merchantId String      @map("merchant_id")
+  title      String
+  offerType  OfferType   @map("offer_type")
+  status     OfferStatus @default(DRAFT)
+  createdAt  DateTime    @default(now()) @map("created_at")
+  updatedAt  DateTime    @updatedAt @map("updated_at")
+
+  // Relations
+  merchant   Merchant    @relation(fields: [merchantId], references: [id], onDelete: Cascade)
+
+  @@index([merchantId])
+  @@map("offers")
+}
+
+// Payout management
+model PayoutLedger {
+  id         String      @id @default(uuid())
+  merchantId String      @map("merchant_id")
+  repId      String      @map("rep_id")
+  amountJod  Float       @map("amount_jod")
+  reason     PayoutReason
+  createdAt  DateTime    @default(now()) @map("created_at")
+
+  // Relations
+  merchant   Merchant    @relation(fields: [merchantId], references: [id], onDelete: Cascade)
+  rep        User        @relation(fields: [repId], references: [id])
+
+  @@unique([merchantId, reason]) // Prevent duplicate payouts
+  @@index([repId])
+  @@index([createdAt])
+  @@map("payout_ledger")
+}
+
+// Audit logging
+model AuditLog {
+  id         String      @id @default(uuid())
+  userId     String?     @map("user_id")
+  entityType String      @map("entity_type")
+  entityId   String      @map("entity_id")
+  action     AuditAction
+  diff       Json?       // Store the changes as JSON
+  createdAt  DateTime    @default(now()) @map("created_at")
+
+  // Relations
+  user       User?       @relation(fields: [userId], references: [id])
+
+  @@index([entityType, entityId])
+  @@index([userId])
+  @@index([createdAt])
+  @@map("audit_logs")
+}
+
+// Settings management
+model Setting {
+  id        String   @id @default(uuid())
+  key       String   @unique
+  value     Json
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@map("settings")
+}
+
+// Notification system
+model Notification {
+  id         String             @id @default(uuid())
+  type       NotificationType
+  entityId   String             @map("entity_id")
+  recipient  String             // Email or user ID
+  subject    String?
+  message    String
+  sent       Boolean            @default(false)
+  sentAt     DateTime?          @map("sent_at")
+  createdAt  DateTime           @default(now()) @map("created_at")
+
+  @@index([type, entityId])
+  @@index([sent])
+  @@map("notifications")
+}
+
+// Enums
+enum Role {
+  ADMIN
+  REP
+  READ_ONLY
+}
+
+enum UserStatus {
+  ACTIVE
+  INACTIVE
+  SUSPENDED
+}
+
+enum MerchantCategory {
+  FOOD
+  DESSERTS_COFFEE
+  BEAUTY
+  CLOTHING
+  SERVICES
+  SPORTS
+  ENTERTAINMENT
+  TOURISM
+  HEALTH
+  ELECTRONICS
+  EDUCATION
+  APPLICATION
+}
+
+enum PricingTier {
+  BUDGET
+  MID
+  PREMIUM
+  LUXURY
+}
+
+enum StudentFit {
+  STRONG
+  MEDIUM
+  WEAK
+}
+
+enum KycStatus {
+  NOT_NEEDED
+  PENDING
+  VERIFIED
+  REJECTED
+}
+
+enum RiskLevel {
+  LOW
+  MEDIUM
+  HIGH
+}
+
+enum ContractStatus {
+  NOT_SENT
+  SENT
+  SIGNED
+  REJECTED
+}
+
+enum PipelineStage {
+  PENDING_FIRST_VISIT
+  FOLLOW_UP_NEEDED
+  CONTRACT_SENT
+  WON
+  REJECTED
+}
+
+enum ActivityType {
+  CALL
+  MEETING
+  WHATSAPP
+  EMAIL
+  TRAINING
+  OTHER
+}
+
+enum ContactRole {
+  OWNER
+  MANAGER
+  MARKETING
+  FINANCE
+  OTHER
+}
+
+enum ContactChannel {
+  WHATSAPP
+  CALL
+  EMAIL
+  SMS
+}
+
+enum OfferType {
+  TYPE1
+  TYPE2
+  TYPE3
+}
+
+enum OfferStatus {
+  DRAFT
+  LIVE
+  PAUSED
+  EXPIRED
+}
+
+enum PayoutReason {
+  WON_BONUS
+  FULLY_ONBOARDED_BONUS
+}
+
+enum AuditAction {
+  CREATE
+  UPDATE
+  DELETE
+  STATE_CHANGE
+}
+
+enum NotificationType {
+  PIPELINE_REMINDER
+  CONTRACT_REMINDER
+  ONBOARDING_REMINDER
+  SYSTEM_ALERT
+}
