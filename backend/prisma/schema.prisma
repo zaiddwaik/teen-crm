@@ -271,6 +271,7 @@ model PayoutLedger {
 model AuditLog {
   id         String      @id @default(uuid())
   userId     String?     @map("user_id")
+  merchantId String?     @map("merchant_id")
   entityType String      @map("entity_type")
   entityId   String      @map("entity_id")
   action     AuditAction
@@ -279,9 +280,11 @@ model AuditLog {
 
   // Relations
   user       User?       @relation(fields: [userId], references: [id])
+  merchant   Merchant?   @relation(fields: [merchantId], references: [id])
 
   @@index([entityType, entityId])
   @@index([userId])
+  @@index([merchantId])
   @@index([createdAt])
   @@map("audit_logs")
 }
